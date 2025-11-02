@@ -23,12 +23,12 @@ LABEL_HEIGHT = 1.0 * inch
 HORIZONTAL_GAP = 0.1 * inch
 VERTICAL_GAP = 0 * inch
 PAGE_MARGIN_X = 0.2 * inch
-PAGE_MARGIN_Y = 0.5 * inch
+PAGE_MARGIN_Y = 0.4 * inch
 TITLE_FONT = "Helvetica-Bold"
 BODY_FONT = "Helvetica"
-TITLE_FONT_SIZE = 16
+TITLE_FONT_SIZE = 12
 BODY_FONT_SIZE = 10
-COUNT_FONT_SIZE = 20
+COUNT_FONT_SIZE = 12
 CONTENT_PADDING = 0.18 * inch
 SUMMARY_TITLE_FONT_SIZE = 18
 SUMMARY_BODY_FONT_SIZE = 11
@@ -38,6 +38,8 @@ SUMMARY_BODY_FONT_SIZE = 11
 class LabelCard:
     name: str
     count: Optional[int]
+    doubles: Optional[int] = None
+    singles: Optional[int] = None
 
 
 def create_app() -> Flask:
@@ -130,23 +132,35 @@ def draw_label_card(
     card: LabelCard,
 ) -> None:
     label_bottom = label_top - LABEL_HEIGHT
-    #pdf.setStrokeColor(colors.lightgrey)
+    #pdf.setStrokeColor(colors.black)
     #pdf.roundRect(label_left, label_bottom, LABEL_WIDTH, LABEL_HEIGHT, 6, stroke=1, fill=0)
 
     center_x = label_left + LABEL_WIDTH / 2
+
+    if card.doubles is not None or card.singles is not None:
+        title_baseline = label_top - CONTENT_PADDING - (TITLE_FONT_SIZE * 0.2)
+        pdf.setFont(TITLE_FONT, TITLE_FONT_SIZE)
+        pdf.drawCentredString(center_x, title_baseline, card.name)
+
+        pdf.setFont(BODY_FONT, BODY_FONT_SIZE)
+        doubles_y = title_baseline - BODY_FONT_SIZE - 6
+        singles_y = doubles_y - BODY_FONT_SIZE - 4
+        pdf.drawCentredString(center_x, doubles_y, f"Doubles: {card.doubles or 0}")
+        pdf.drawCentredString(center_x, singles_y, f"Singles: {card.singles or 0}")
+        return
 
     # Name placement
     if card.count is None:
         name_y = label_bottom + (LABEL_HEIGHT / 2) - (TITLE_FONT_SIZE / 2)
     else:
-        name_y = label_top - CONTENT_PADDING - TITLE_FONT_SIZE
+        name_y = label_top - CONTENT_PADDING - (TITLE_FONT_SIZE * 0.2)
 
     pdf.setFont(TITLE_FONT, TITLE_FONT_SIZE)
     pdf.drawCentredString(center_x, name_y, card.name)
 
     if card.count is not None:
         pdf.setFont(TITLE_FONT, COUNT_FONT_SIZE)
-        count_y = label_bottom + (LABEL_HEIGHT / 2) - (COUNT_FONT_SIZE)
+        count_y = label_bottom + (LABEL_HEIGHT / 2) - (COUNT_FONT_SIZE * 0.35)
         pdf.drawCentredString(center_x, count_y, str(card.count))
 
 
@@ -220,15 +234,32 @@ def _prepare_label_cards(dataframe: pd.DataFrame) -> Tuple[List[LabelCard], List
     )
 
     label_cards: List[LabelCard] = []
+    total_doubles = 0
+    total_singles = 0
     for _, row in aggregated.iterrows():
         carry_count = int(row["carry_out"])
         if carry_count <= 0:
             continue
 
+        doubles = carry_count // 2
+        singles = carry_count % 2
+        total_doubles += doubles
+        total_singles += singles
+
         total_labels = _required_label_count(carry_count)
         label_cards.append(LabelCard(name=row["name"], count=carry_count))
         for _ in range(total_labels - 1):
             label_cards.append(LabelCard(name=row["name"], count=None))
+
+    if total_doubles or total_singles:
+        label_cards.append(
+            LabelCard(
+                name="Pack Summary",
+                count=None,
+                doubles=total_doubles,
+                singles=total_singles,
+            )
+        )
 
     dine_summary = [
         (row["name"], int(row["dine_in"]))
@@ -276,5 +307,5 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    debug_mode = os.environ.get("FLASK_DEBUG", "").lower() in {"1", "true", "yes"}
+    debug_mode = True#os.environ.get("FLASK_DEBUG", "").lower() in {"1", "true", "yes"}
     app.run(debug=debug_mode, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
