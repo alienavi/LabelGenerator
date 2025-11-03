@@ -29,7 +29,7 @@ BODY_FONT = "Helvetica"
 TITLE_FONT_SIZE = 12
 BODY_FONT_SIZE = 10
 COUNT_FONT_SIZE = 12
-CONTENT_PADDING = 0.18 * inch
+CONTENT_PADDING = 0.2 * inch
 SUMMARY_TITLE_FONT_SIZE = 18
 SUMMARY_BODY_FONT_SIZE = 11
 
@@ -138,7 +138,7 @@ def draw_label_card(
     center_x = label_left + LABEL_WIDTH / 2
 
     if card.doubles is not None or card.singles is not None:
-        title_baseline = label_top - CONTENT_PADDING - (TITLE_FONT_SIZE * 0.2)
+        title_baseline = label_top - CONTENT_PADDING - (TITLE_FONT_SIZE * 0.6)
         pdf.setFont(TITLE_FONT, TITLE_FONT_SIZE)
         pdf.drawCentredString(center_x, title_baseline, card.name)
 
@@ -153,14 +153,14 @@ def draw_label_card(
     if card.count is None:
         name_y = label_bottom + (LABEL_HEIGHT / 2) - (TITLE_FONT_SIZE / 2)
     else:
-        name_y = label_top - CONTENT_PADDING - (TITLE_FONT_SIZE * 0.2)
+        name_y = label_top - CONTENT_PADDING - (TITLE_FONT_SIZE)
 
     pdf.setFont(TITLE_FONT, TITLE_FONT_SIZE)
     pdf.drawCentredString(center_x, name_y, card.name)
 
     if card.count is not None:
         pdf.setFont(TITLE_FONT, COUNT_FONT_SIZE)
-        count_y = label_bottom + (LABEL_HEIGHT / 2) - (COUNT_FONT_SIZE * 0.35)
+        count_y = label_bottom + (LABEL_HEIGHT / 2) - (COUNT_FONT_SIZE * 0.5)
         pdf.drawCentredString(center_x, count_y, str(card.count))
 
 
